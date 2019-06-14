@@ -139,8 +139,20 @@ for building datapackages from raw data sources.
 Components and mathematical description
 ========================================
 
+In the following a mathematical description for the implemented components is
+given. We only provide the formulations for fixed installed capacities, i.e.
+dispatch models. As the package is continounsly developed, the most up-to-date mathematical
+representation will be found in the documentation.  Therefore the full set of
+equations can be obtained by careful inspection of the oemof tabular documentation
+and in addtion the oemof solph documentation.
+
+However, the following description gives a compact overview about basic
+functionalities and the notation used inside the documentation.
+
+
 Reservoir
 ----------
+
 
 Volatile
 -----------
@@ -160,27 +172,23 @@ the following equation holds:
 Where :math:`x_{dispatchable}^{flow}` denotes the production (endogenous variable)
 of the dispatchable object to the bus.
 
-If `expandable` is set to `True` (**investment mode**), the equation
-changes slightly:
-
-.. math::
-
-    x_{dispatchable}^{flow}(t) \leq (x_{dispatchable}^{capacity} + \
-    c_{dispatchable}^{capacity})  \cdot c_{dispatchable}^{profile}(t)\
-    \qquad \forall t \in T
-
-Where the bounded endogenous variable of the volatile component is added:
-
-..  math::
-
-        x_{dispatchable}^{capacity} \leq c_{dispatchable}^{capacity\_potential}
-
 
 Conversion
 ------------
 
-Load
-------------
+Conversion components have one input and one output and can thus be used to
+model power plants as well as with all other conversion processes with
+a constant efficiencies.
+
+.. math::
+
+    x_{conversion}^{flow, input}(t) = c_{conversion}^{efficiency}(t) \cdot \
+    x_{conversion}^{flow, output}(t) \qquad \forall t \in T\\
+
+.. math::
+    c_{dispatchable}^{flow, output})(t)  \leq c_{conversion}^{capacity} \
+    \\quad \forall t \in T
+
 
 Link
 ------------
@@ -193,18 +201,20 @@ Extraction Turbine
 
 
 
-Pre- and postprocessing
-========================
+Addtional functionalities
+==========================
 
 Temporal aggregation
 -------------------------
 
-TODO.
-
-Standard output format
+Writing results
 -------------------------
 
-TODO.
+Building datapackages
+-------------------------
+
+
+
 
 Reproducible Workflows
 =======================
