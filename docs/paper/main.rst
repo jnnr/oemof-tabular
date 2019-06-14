@@ -1,4 +1,14 @@
 
+===================================================================================
+oemof tabular - python package for reproducible workflows in energy systm modelling
+===================================================================================
+:Authors:
+    Simon Hilpert,
+    Martin Söthe,
+    Stephan Günther
+:Date:
+    June, 2019
+
 
 Background
 =============
@@ -13,8 +23,8 @@ of existing data, the following data model description has been developed to
 store energy system related data in the datapackage format.
 
 The Open Energy Modelling Framework (oemof) is a powefull tool for modelling
-energy systems. The functionalties range from   large linear programming
-market models to detailed MILP heating system or Battery models to asses
+energy systems. The functionalties range from large linear programming
+market models to detailed MILP heating system or battery models to assess
 profitablilty of plants in current and future market environments. The undelying
 concept and its generic implementation allows for a very versatile modelling.
 Most oemof components are rather of an abstract type like for example
@@ -29,26 +39,157 @@ knowledge of the package and resources to build in/out data processing.
 Facade concept
 ======================
 
-To enbale for a standard input format so called Facade concept for oemof solph
-component has been developed. Facades have multiple advantages:
+To enbale for a standard input format so called *facade* concept for oemof solph
+component has been applied. Facade classes in this context come with multiple
+advantages:
 
-* Allow to instantiate from two dimenisonal data sources
-* Restricted, less generic mathematical representation leading to more
-transparent modelling
-* Allows to build a simple interface for for complex components that are
-constructed on the basis of multiple oemof solph components.
-* Facade can be mixed with oemof solph components in a model
+  * Facades allow to instantiate models from two dimenisonal data sources as
+    they provide a simplified interface to complex underlying structures.
+  * This simplified and thus restricted, less generic mathematical representation
+    leading to more transparent modelling.
+  * In addtion it allows to build an interface for composed components that are
+    constructed on the basis of multiple oemof solph objects.
+
+As they are subclasses of oemof solph components, facades can also be mixed
+with all their more generic parent class objects in a model.
 
 
 Data model
-=======================
+-----------------------
 
 The datamodel is extendable and could be applied for various frameworks
 (PyPSA, calliope, etc.). However, currenty the implementation for reading
- datapackages is limited to oemof-tabular classifiers
+ datapackages is limited to oemof-tabular classes.
+
+Facades require specific attributes. For all facades the attribute `carrier`,
+'tech' and 'type' need to be set. The type of the attribute is string,
+therefore you can choose string for these. However, if you want to leverage
+full postprocessing functionality we recommend using one of the types listed below
+
+**Carrier types**
+
+    * solar, wind, biomass, coal, lignite, uranium, oil, gas, hydro, waste,
+      electricity, heat, other
+
+**Tech types**
+
+    * st, ocgt, ccgt, ce, pv, onshore, offshore, ror, rsv, phs, ext, bp, battery
+
+
+We recommend use the following naming convention for your facade names
+`bus-carrier-tech-number`, for example: `DE-gas-ocgt-1`.
+
+
+Datapackage
+============
+To construct a model based on the datapackage the following 2
+steps are required:
+
+    1. Add the topology of the energy system based on the components and their
+       **exogenous model variables** to csv-files in the datapackage format.
+	  2. Create a python script to construct the energy system and the model from
+	     that data.
+
+
+We recommend a specific workflow to allow to publish your scenario
+(input data, assumptions, model and results) altogether in one consistent block
+based on the datapackage standard (see: Reproducible Workflows).
+
+
+How to create a Datapackage
+-----------------------------
+
+We adhere to the frictionless `(tabular) datapackage standard  <https://frictionlessdata.io/specs/tabular-data-package/>`_.
+On top of that structure we add our own logic. We require at least two things:
+
+	1. A directory named *data* containing at least one sub-folder called *elements*
+	   (optionally it may contain a directory *sequences* and *geometries*. Of
+	   course you may add any other directory, data or other information.)
+
+	2. A valid meta-data `.json` file for the datapackage
+
+The resulting tree of the datapackage could for example look like this:
+
+::
+
+   |-- datapackage
+       |-- data
+           |-- elements
+               |-- demand.csv
+               |-- generator.csv
+               |-- storage.csv
+               |-- bus.csv
+           |-- sequences
+       |-- scripts
+       |-- datapackage.json
+
+Inside the datapackage, data is stored in so called resources. For a
+tabular-datapackage, these resources are CSV files. Columns of such
+resources are referred to as *fields*. In this sense field names of the
+resources are equivalent to parameters of the energy system elements and
+sequences.
+
+To distinguish elements and sequences these two are stored in sub-directories of
+the data directory. In addition geometrical information can be stored under
+`data/geometries` in a `.geojson` format. To simplifiy the process of creating
+and processing a datapackage the package also comes with several funtionalities
+for building datapackages from raw data sources.
+
 
 Components and mathematical description
-===============================
+========================================
+
+Reservoir
+----------
+
+Volatile
+-----------
+
+Dispatchable
+-------------
+
+The mathematical representations for this components are dependent on the
+user defined attributes. If the capacity is fixed before (**dispatch mode**)
+the following equation holds:
+
+.. math::
+
+    x_{dispatchable}^{flow}(t) \leq c_{dispatchable}^{capacity} \cdot \
+     c_{dispatchable}^{profile}  \qquad \forall t \in T
+
+Where :math:`x_{dispatchable}^{flow}` denotes the production (endogenous variable)
+of the dispatchable object to the bus.
+
+If `expandable` is set to `True` (**investment mode**), the equation
+changes slightly:
+
+.. math::
+
+    x_{dispatchable}^{flow}(t) \leq (x_{dispatchable}^{capacity} + \
+    c_{dispatchable}^{capacity})  \cdot c_{dispatchable}^{profile}(t)\
+    \qquad \forall t \in T
+
+Where the bounded endogenous variable of the volatile component is added:
+
+..  math::
+
+        x_{dispatchable}^{capacity} \leq c_{dispatchable}^{capacity\_potential}
+
+
+Conversion
+------------
+
+Load
+------------
+
+Link
+------------
+
+Backpressure Turbine
+----------------------
+
+Extraction Turbine
+----------------------
 
 
 
@@ -106,3 +247,7 @@ can be stored there.
 
 Of course the structure may be adapted to your needs. However you should
 provide all this data when publishing results.
+
+
+Conclusion
+=============
