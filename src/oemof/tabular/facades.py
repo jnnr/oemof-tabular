@@ -13,7 +13,8 @@ hood the `Facade` then uses these arguments to construct an `oemof` or
 
 * Optimization variables (endogenous variables) are denoted by :math:`x`
 * Optimization parameters (exogenous variables) are denoted by :math:`c`
-* The set of timesteps :math:`T` describes all timesteps of the optimization problem
+* The set of timesteps :math:`T` describes all timesteps of the optimization
+  problem
 
 SPDX-License-Identifier: BSD-3-Clause
 """
@@ -62,13 +63,14 @@ class Facade(Node):
         """ Returns None if self.expandable ist True otherwise it returns
         the capacity
         """
-        if self.expandable:
+        if self.expandable is True:
             return None
+
         else:
             return self.capacity
 
     def _investment(self):
-        if self.expandable:
+        if self.expandable is True:
             if self.capacity_cost is None:
                 msg = (
                     "If you set `expandable`to True you need to set "
@@ -110,7 +112,7 @@ class Facade(Node):
 
 
 class Reservoir(GenericStorage, Facade):
-    """ A Reservoir storage unit, that is initially half full.
+    r""" A Reservoir storage unit, that is initially half full.
 
     Note that the investment option is not available for this facade at
     the current development state.
@@ -135,6 +137,29 @@ class Reservoir(GenericStorage, Facade):
     output_parameters: dict
         see: input_parameters
 
+
+    The reservoir is modelled as a storage with a constant inflow:
+
+    .. math::
+
+        x^{level}(t) =
+        x^{level}(t-1) \cdot (1 - c^{loss\_rate}(t))
+        + x^{profile}(t) - \frac{x^{flow, out}(t)}{c^{efficiency}(t)}
+        \qquad \forall t \in T
+
+    .. math::
+        x^{level}(0) = 0.5 \cdot c^{capacity}
+
+    The inflow is bounded by the exogenous inflow profile. Thus if the inflow
+    exceeds the maximum capacity of the storage, spillage is possible by
+    setting :math:`x^{profile}(t)` to lower values.
+
+    .. math::
+        0 \leq x^{profile}(t) \leq c^{profile}(t) \qquad \forall t \in T
+
+
+    The spillage of the reservoir is therefore defined by:
+    :math:`c^{profile}(t) - x^{profile}(t)`.
 
     Note
     ----
@@ -228,7 +253,7 @@ class Reservoir(GenericStorage, Facade):
 
 
 class Dispatchable(Source, Facade):
-    """ Dispatchable element with one output for example a gas-turbine
+    r""" Dispatchable element with one output for example a gas-turbine
 
     Parameters
     ----------
@@ -258,15 +283,15 @@ class Dispatchable(Source, Facade):
 
 
     The mathematical representations for this components are dependent on the
-    user defined attributes. If the capacity is fixed before (**dispatch mode**)
-    the following equation holds:
+    user defined attributes. If the capacity is fixed before
+    (**dispatch mode**) the following equation holds:
 
     .. math::
 
-        x_{dispatchable}^{flow}(t) \leq c_{dispatchable}^{capacity} \cdot \
-         c_{dispatchable}^{profile}  \\qquad \\forall t \in T
+        x^{flow}(t) \leq c^{capacity} \cdot c^{profile}(t) \
+        \qquad \forall t \in T
 
-    Where :math:`x_{dispatchable}^{flow}` denotes the production (endogenous variable)
+    Where :math:`x^{flow}` denotes the production (endogenous variable)
     of the dispatchable object to the bus.
 
     If `expandable` is set to `True` (**investment mode**), the equation
@@ -274,16 +299,20 @@ class Dispatchable(Source, Facade):
 
     .. math::
 
-        x_{dispatchable}^{flow}(t) \leq (x_{dispatchable}^{capacity} + \
-        c_{dispatchable}^{capacity})  \cdot c_{dispatchable}^{profile}(t)\
-        \\qquad \\forall t \in T
+        x^{flow}(t) \leq (x^{capacity} +
+        c^{capacity})  \cdot c^{profile}(t) \qquad \forall t \in T
 
     Where the bounded endogenous variable of the volatile component is added:
 
     ..  math::
 
-            x_{dispatchable}^{capacity} \leq c_{dispatchable}^{capacity\_potential}
+            x^{capacity} \leq c^{capacity\_potential}
 
+    **Ojective expression** for operation:
+
+    .. math::
+
+        x^{opex} = \sum_t x^{flow}(t) \cdot c^{marginal\_cost}(t)
 
     For constraints set through `output_parameters` see oemof.solph.Flow class.
 
@@ -302,7 +331,7 @@ class Dispatchable(Source, Facade):
     ...     capacity=1000,
     ...     marginal_cost=10,
     ...     output_parameters={
-    ...         'max': 0.9})
+    ...         'min': 0.2})
 
     """
 
@@ -310,7 +339,7 @@ class Dispatchable(Source, Facade):
         kwargs.update({"_facade_requires_": ["bus", "carrier", "tech"]})
         super().__init__(*args, **kwargs)
 
-        self.profile = kwargs.get("profile", sequence(1))
+        self.profile = kwargs.get("profile", 1)
 
         self.capacity = kwargs.get("capacity")
 
@@ -330,6 +359,9 @@ class Dispatchable(Source, Facade):
         """
         """
 
+        if self.profile is None:
+            self.profile = 1
+
         f = Flow(
             nominal_value=self._nominal_value(),
             variable_costs=self.marginal_cost,
@@ -342,7 +374,7 @@ class Dispatchable(Source, Facade):
 
 
 class Volatile(Source, Facade):
-    """Volatile element with one output. This class can be used to model
+    r"""Volatile element with one output. This class can be used to model
     PV oder Wind power plants.
 
 
@@ -376,24 +408,23 @@ class Volatile(Source, Facade):
 
 
     The mathematical representations for this components are dependent on the
-    user defined attributes. If the capacity is fixed before (**dispatch mode**)
-    the following equation holds:
+    user defined attributes. If the capacity is fixed before
+    (**dispatch mode**) the following equation holds:
 
     .. math::
 
-        x_{volatile}^{flow}(t) = c_{volatile}^{capacity} \cdot c_{volatile}^{profile}(t) \
-         \\qquad \\forall t \in T
+        x^{flow}(t) = c^{capacity} \cdot c^{profile}(t) \qquad \forall t \in T
 
-    Where :math:`x_{volatile}^{flow}` denotes the production (endogenous variable)
-    of the volatile object to the bus.
+    Where :math:`x_{volatile}^{flow}` denotes the production
+    (endogenous variable) of the volatile object to the bus.
 
     If `expandable` is set to `True` (**investment mode**), the equation
     changes slightly:
 
     .. math::
 
-        x_{volatile}^{flow}(t) = (x_{volatile}^{capacity} + c_{volatile}^{capacity}) \
-         \cdot c_{volatile}^{profile}(t)  \\qquad \\forall t \in T
+        x^{flow}(t) = (x^{capacity} + c^{capacity}) \
+         \cdot c^{profile}(t)  \qquad \forall t \in T
 
     Where the bounded endogenous variable of the volatile component is added:
 
@@ -401,7 +432,11 @@ class Volatile(Source, Facade):
 
             x_{volatile}^{capacity} \leq c_{volatile}^{capacity\_potential}
 
+    **Ojective expression** for operation:
 
+    .. math::
+
+        x^{opex} = \sum_t (x^{flow}(t) \cdot c^{marginal\_cost}(t))
 
     Examples
     ---------
@@ -458,7 +493,7 @@ class Volatile(Source, Facade):
 
 
 class ExtractionTurbine(ExtractionTurbineCHP, Facade):
-    """ Combined Heat and Power (extraction) unit with one input and
+    r""" Combined Heat and Power (extraction) unit with one input and
     two outputs.
 
     Parameters
@@ -494,6 +529,37 @@ class ExtractionTurbine(ExtractionTurbineCHP, Facade):
         chp capacity.
     expandable: boolean
         True, if capacity can be expanded within optimization. Default: False.
+
+
+    The mathematical description is derived from the oemof base class
+    `ExtractionTurbineCHP <https://oemof.readthedocs.io/en/
+    stable/oemof_solph.html#extractionturbinechp-component>`_ :
+
+    .. math::
+        x^{flow, carrier}(t) =
+        \frac{x^{flow, electricity}(t) + x^{flow, heat}(t) \
+        \cdot c^{beta}(t)}{c^{condensing\_efficiency}(t)}
+        \qquad \forall t \in T
+
+    .. math::
+        x^{flow, electricity}(t)  \geq  x^{flow, thermal}(t) \cdot
+        \frac{c^{electrical\_efficiency}(t)}{c^{thermal\_efficiency}(t)}
+        \qquad \forall t \in T
+
+    where :math:`c^{beta}` is defined as:
+
+     .. math::
+        c^{beta}(t) = \frac{c^{condensing\_efficiency}(t) -
+        c^{electrical\_efficiency(t)}}{c^{thermal\_efficiency}(t)}
+        \qquad \forall t \in T
+
+    **Ojective expression** for operation includes marginal cost and/or
+    carrier costs:
+
+        .. math::
+
+            x^{opex} = \sum_t (x^{flow, out}(t) \cdot c^{marginal\_cost}(t)
+            + x^{flow, carrier}(t) \cdot c^{carrier\_cost}(t))
 
 
     Examples
@@ -597,7 +663,7 @@ class ExtractionTurbine(ExtractionTurbineCHP, Facade):
 
 
 class BackpressureTurbine(Transformer, Facade):
-    """ Combined Heat and Power (backpressure) unit with one input and
+    r""" Combined Heat and Power (backpressure) unit with one input and
     two outputs.
 
     Parameters
@@ -632,6 +698,29 @@ class BackpressureTurbine(Transformer, Facade):
         chp capacity.
 
 
+    Backpressure turbine power plants are modelled with a constant relation
+    between heat and electrical output (power to heat coefficient).
+
+    .. math::
+
+        x^{flow, carrier}(t) =
+        \frac{x^{flow, electricity}(t) + x^{flow, heat}(t)}\
+        {c^{thermal\:efficiency}(t) + c^{electrical\:efficiency}(t)}
+        \qquad \forall t \in T
+
+    .. math::
+
+        \frac{x^{flow, electricity}(t)}{x_{flow, thermal}(t)} =
+        \frac{c^{electrical\:efficiency}(t)}{c^{thermal\:efficiency}(t)}
+        \qquad \forall t \in T
+
+    **Ojective expression** for operation includes marginal cost and/or
+    carrier costs:
+
+        .. math::
+
+            x^{opex} = \sum_t (x^{flow, out}(t) \cdot c^{marginal\_cost}(t)
+            + x^{flow, carrier}(t) \cdot c^{carrier\_cost}(t))
 
     Examples
     ---------
@@ -722,7 +811,7 @@ class BackpressureTurbine(Transformer, Facade):
 
 
 class Conversion(Transformer, Facade):
-    """ Conversion unit with one input and one output.
+    r""" Conversion unit with one input and one output.
 
     Parameters
     ----------
@@ -738,6 +827,8 @@ class Conversion(Transformer, Facade):
         Efficiency of the conversion unit (0 <= efficiency <= 1). Default: 1
     marginal_cost: numeric
         Marginal cost for one unit of produced output. Default: 0
+    carrier_cost: numeric
+        Carrier cost for one unit of used input. Default: 0
     capacity_cost: numeric
         Investment costs per unit of output capacity.
         If capacity is not set, this value will be used for optimizing the
@@ -747,11 +838,25 @@ class Conversion(Transformer, Facade):
     capacity_potential: numeric
         Maximum invest capacity in unit of output capacity.
     input_parameters: dict (optional)
-        Set parameters on the input edge of the storage (see oemof.solph for
-        more information on possible parameters)
+        Set parameters on the input edge of the conversion unit
+        (see oemof.solph for more information on possible parameters)
     ouput_parameters: dict (optional)
-        Set parameters on the output edge of the storage (see oemof.solph for
-        more information on possible parameters)
+        Set parameters on the output edge of the conversion unit
+         (see oemof.solph for more information on possible parameters)
+
+
+    .. math::
+        x^{flow, from}(t) \cdot c^{efficiency}(t) = x^{flow, to}(t)
+        \qquad \forall t \in T
+
+    **Ojective expression** for operation includes marginal cost and/or
+    carrier costs:
+
+        .. math::
+
+            x^{opex} =  \sum_t (x^{flow, out}(t) \cdot c^{marginal\_cost}(t)
+            + x^{flow, carrier}(t) \cdot c^{carrier\_cost}(t))
+
 
     Examples
     ---------
@@ -784,6 +889,8 @@ class Conversion(Transformer, Facade):
 
         self.marginal_cost = kwargs.get("marginal_cost", 0)
 
+        self.carrier_cost = kwargs.get("carrier_cost", 0)
+
         self.capacity_cost = kwargs.get("capacity_cost")
 
         self.expandable = bool(kwargs.get("expandable", False))
@@ -806,7 +913,8 @@ class Conversion(Transformer, Facade):
             }
         )
 
-        self.inputs.update({self.from_bus: Flow(**self.input_parameters)})
+        self.inputs.update({self.from_bus: Flow(
+            variable_costs=self.carrier_cost, **self.input_parameters)})
 
         self.outputs.update(
             {
@@ -821,7 +929,7 @@ class Conversion(Transformer, Facade):
 
 
 class Load(Sink, Facade):
-    """ Load object with one input
+    r""" Load object with one input
 
     Parameters
     ----------
@@ -837,6 +945,11 @@ class Load(Sink, Facade):
     fixed: boolean
         True, if demand should be inelastic (Default: True)
     input_parameters: dict (optional)
+
+
+
+    .. math::
+        x^{flow}(t) = c^{amount}(t)  \cdot x^{flow}(t) \qquad \forall t \in T
 
 
     Examples
@@ -887,7 +1000,7 @@ class Load(Sink, Facade):
 
 
 class Storage(GenericStorage, Facade):
-    """ Storage unit
+    r""" Storage unit
 
     Parameters
     ----------
@@ -919,11 +1032,21 @@ class Storage(GenericStorage, Facade):
 
     .. math::
 
-        x_{storage}^{level}(t) = \
-        x_{storage}^{level}(t-1) \cdot (1-r_{storage}^{loss\:rate}) \
-        + \eta x_{(storage, in)}^{flow}(t) \
-        - \eta x_{(storage, out)}^{flow}(t)
-         \\qquad \\forall t \in T
+        x^{level}(t) =
+        x^{level}(t-1) \cdot (1 - c^{loss\_rate})
+        + \sqrt{c^{efficiency}(t)}  x^{flow, in}(t)
+        - \frac{x^{flow, out}(t)}{\sqrt{c^{efficiency}(t)}}
+        \qquad \forall t \in T
+
+    .. math::
+        x^{level}(0) = 0.5 \cdot c^{capacity}
+
+    The **expression** added to the cost minimizing objective funtion
+    for the operation is given as:
+
+    .. math::
+
+        x^{opex} = \sum_t (x^{flow, out}(t) \cdot c^{marginal\_cost}(t))
 
 
     Examples
@@ -1067,6 +1190,7 @@ class Link(Link, Facade):
     expandable: boolean
         True, if capacity can be expanded within optimization. Default: False.
 
+
     Note
     -----
     Assigning a small value like 0.00001 to `marginal_cost`  may force unique
@@ -1135,7 +1259,7 @@ class Link(Link, Facade):
 
 
 class Commodity(Source, Facade):
-    """ Commodity element with one output for example a biomass commodity
+    r""" Commodity element with one output for example a biomass commodity
 
     Parameters
     ----------
@@ -1150,6 +1274,9 @@ class Commodity(Source, Facade):
         Parameters to set on the output edge of the component (see. oemof.solph
         Edge/Flow class for possible arguments)
 
+
+    .. math::
+        \sum_{t} x^{flow}(t) \leq c^{amount}
 
     For constraints set through `output_parameters` see oemof.solph.Flow class.
 
