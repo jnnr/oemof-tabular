@@ -1,7 +1,7 @@
 
-===================================================================================
+======================================================================================
 oemof tabular - python package for reproducible workflows in energy system modelling
-===================================================================================
+======================================================================================
 :Authors:
     Simon Hilpert,
     Martin Söthe,
@@ -107,9 +107,9 @@ this structure we add our own energy system specific logic.
 
 Here we require at least two things:
 
-	1. A directory named *data* containing at least one sub-folder called *elements*
-	   (optionally it may contain a directory *sequences* and *geometries*.
-	2. A valid meta-data ``.json`` file for the datapackage
+1. A directory named *data* containing at least one sub-folder called *elements*
+   (optionally it may contain a directory *sequences* and *geometries*.
+2. A valid meta-data ``.json`` file for the datapackage
 
 The resulting tree of the datapackage could for example look like this:
 
