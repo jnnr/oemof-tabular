@@ -1,13 +1,13 @@
 
 ===================================================================================
-oemof tabular - python package for reproducible workflows in energy systm modelling
+oemof tabular - python package for reproducible workflows in energy system modelling
 ===================================================================================
 :Authors:
     Simon Hilpert,
     Martin Söthe,
     Stephan Günther
 :Date:
-    June, 2019
+    July, 2019
 
 
 Background
@@ -54,48 +54,48 @@ in combination with tabular data sources.
 **TODO: Short general facade concept (1-3 sentences + one citetation)**
 
 
-Facade classes in the context of `oemof tabular` context come with multiple
+Facade classes in the context of ``oemof tabular`` context come with multiple
 advantages:
 
-  * Facades allow to instantiate models from two dimenisonal data sources as
-    they provide a simplified interface to complex underlying structures.
-  * This simplified and thus restricted, less generic mathematical representation
-    leading to more transparent modelling.
-  * In addtion it allows to build an interface for composed components that are
-    constructed on the basis of multiple oemof solph objects.
+* Facades allow to instantiate models from two dimenisonal data sources as
+  they provide a simplified interface to complex underlying structures.
+* This simplified and thus restricted, less generic mathematical representation
+  leading to more transparent modelling.
+* In addtion it allows to build an interface for composed components that are
+  constructed on the basis of multiple oemof solph objects.
 
 As they are subclasses of oemof solph components, facades can also be mixed
 with all their more generic parent class objects in a model.
 
 
 Data model
------------------------
+=================
 
 The datamodel is extendable and could be applied for various frameworks
 (PyPSA, calliope, etc.). However, currenty the implementation for reading
  datapackages is limited to oemof-tabular classes.
 
-Facades require specific attributes. For all facades the attribute `carrier`,
+Facades require specific attributes. For all facades the attribute ``carrier``,
 'tech' and 'type' need to be set. The type of the attribute is string,
 therefore you can choose string for these. However, if you want to leverage
 full postprocessing functionality we recommend using one of the types listed below
 
 **Carrier types**
 
-    * solar, wind, biomass, coal, lignite, uranium, oil, gas, hydro, waste,
-      electricity, heat, other
+* solar, wind, biomass, coal, lignite, uranium, oil, gas, hydro, waste,
+  electricity, heat, other
 
 **Tech types**
 
-    * st, ocgt, ccgt, ce, pv, onshore, offshore, ror, rsv, phs, ext, bp, battery
+* st, ocgt, ccgt, ce, pv, onshore, offshore, ror, rsv, phs, ext, bp, battery
 
 
 We recommend use the following naming convention for your facade names
-`bus-carrier-tech-number`, for example: `DE-gas-ocgt-1`.
+``bus-carrier-tech-number``, for example: ``DE-gas-ocgt-1``.
 
 
-Datapackage
-============
+Datapackage Implementation
+==============================
 
 The datapackage holds the topology and parameters of an energy system model
 instance. At a minimum this includes all values exogenous model variables and
@@ -109,7 +109,7 @@ Here we require at least two things:
 
 	1. A directory named *data* containing at least one sub-folder called *elements*
 	   (optionally it may contain a directory *sequences* and *geometries*.
-	2. A valid meta-data `.json` file for the datapackage
+	2. A valid meta-data ``.json`` file for the datapackage
 
 The resulting tree of the datapackage could for example look like this:
 
@@ -134,23 +134,9 @@ sequences.
 
 To distinguish elements and sequences these two are stored in sub-directories of
 the data directory. In addition geometrical information can be stored under
-`data/geometries` in a `.geojson` format. To simplifiy the process of creating
+``data/geometries`` in a ``.geojson`` format. To simplifiy the process of creating
 and processing a datapackage the package also comes with several funtionalities
 for building datapackages from raw data sources.
-
-
-
-Addtional functionalities
-==========================
-
-Temporal aggregation
--------------------------
-
-Writing results
--------------------------
-
-Building datapackages
--------------------------
 
 
 Reproducible Workflows
@@ -185,16 +171,20 @@ The starting point of this workflow is the folder strucutre:
 				|--ouput
 
 
-The `raw-data` directory contains all input data files required to build the
-input datapckages for your modelling. The `scenatios` directory allows you
+The ``raw-data`` directory contains all input data files required to build the
+input datapckages for your modelling. The ``scenatios`` directory allows you
 to specify different scenarios and describe them in a basic way.  The scripts
-inside the `scripts` directory will build input data for your scenarios from the
-`.toml` files and the raw-data. In addition the script to compute the models
+inside the ``scripts`` directory will build input data for your scenarios from the
+``.toml`` files and the raw-data. In addition the script to compute the models
 can be stored there.
 
-Of course the structure may be adapted to your needs. However you should
-provide all this data when publishing results.
+To facilitate the process of creating datapackages from raw data, compute models
+and process results  the  *oemof-tabular* package provides a set of
+functionalities:
 
+* ``oemof.tabular.datapackage.building`` contains functions to infer meta data, download raw data, read and write elements, sequences etc.
+* ``oemof.tabular.datapackage.processing`` contains functions to process model results that can be used in the ``compute.py`` script.
+* ``oemof.tabular.datapackage.aggregation`` allows to aggregate timeseries to reduce model complexity.
 
-Conclusion
-=============
+Example
+================
