@@ -20,7 +20,7 @@ def read(*names, **kwargs):
 
 setup(
     name="oemof.tabular",
-    version="0.0.1dev",
+    version="0.0.2dev",
     license="BSD 3-Clause License",
     description="Load oemof energy systems from tabular data sources.",
     long_description="%s\n%s"
@@ -67,7 +67,7 @@ setup(
     install_requires=[
         "datapackage",
         "geojson",
-        "oemof==0.3.1",
+        "oemof>=0.3.1",
         "pandas>=0.22",
         "seaborn",
         "paramiko",
